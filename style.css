@@ -1494,3 +1494,70 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: var(--border-color);
   border-radius: 99px;
 }
+
+/* ==========================================================================
+   New Requirements Enhancements (1-Row Name/Status, Drag & Drop, Whole Row Click)
+   ========================================================================== */
+
+/* Requirement ④: 名前とステータスの1行固定表示 (全レスポンシブサイズ対応) */
+.list-user-cell, .member-info-header {
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.list-user-cell > div > div, .member-info-header > div > div {
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+}
+
+.member-name {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.status-badge {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.card-top-bar {
+  flex-wrap: nowrap !important;
+  gap: 0.5rem;
+}
+
+/* Requirement ⑤: 行全体・カード全体クリックのスタイル */
+.status-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.status-table tbody tr:hover td {
+  background-color: #e2e8f0 !important;
+}
+
+.status-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Requirement ③: ドラッグ＆ドロップ並び替えスタイル */
+[draggable="true"] {
+  cursor: grab;
+}
+
+[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.status-card.dragging, tr.dragging {
+  opacity: 0.45;
+  outline: 2px dashed var(--primary-color) !important;
+}
+
+.status-card.drag-over, tr.drag-over {
+  border-top: 3px solid var(--primary-color) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4) !important;
+}
+

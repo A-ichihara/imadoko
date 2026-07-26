@@ -524,13 +524,13 @@ class ImaDokoApp {
         const themeColor = this.statusColors[m.status] || statusObj.defaultColor;
         const timeDisplayStr = this.formatTimestampDisplay(m.lastUpdated);
         return `
-          <tr>
+          <tr draggable="true" data-id="${m.id}" data-dept="${m.dept}" onclick="app.openStatusModal('${m.id}')">
             <td>
               <div class="list-user-cell">
                 <img class="avatar-md" src="${m.avatar}" alt="" onerror="this.src='https://via.placeholder.com/150'">
                 <div>
-                  <div style="display:flex;align-items:center;gap:0.4rem;">
-                    <strong>${m.name}</strong>
+                  <div style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;">
+                    <strong class="member-name">${m.name}</strong>
                     ${m.ext ? `<span class="ext-badge"><i class="fa-solid fa-phone"></i> ${m.ext}</span>` : ''}
                   </div>
                   <span style="font-size:0.75rem;color:var(--text-muted);">${m.dept}${m.role ? ' (' + m.role + ')' : ''}</span>
@@ -552,7 +552,7 @@ class ImaDokoApp {
               <span class="timestamp-display"><i class="fa-regular fa-clock"></i> ${timeDisplayStr}</span>
             </td>
             <td>
-              <button class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem;" onclick="app.openStatusModal('${m.id}')">変更</button>
+              <button class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem;" onclick="event.stopPropagation();app.openStatusModal('${m.id}')">変更</button>
             </td>
           </tr>`;
       }).join('');
@@ -574,6 +574,8 @@ class ImaDokoApp {
           <tbody>${tableRows}</tbody>
         </table>
       </div>`;
+
+    this.bindDragEvents();
   }
 
   renderCardView() {
@@ -622,12 +624,12 @@ class ImaDokoApp {
         const bgStyle = `background:linear-gradient(135deg,#fff 0%,${hexToRgba(themeColor,0.08)} 100%);border-color:${themeColor};`;
         const timeDisplayStr = this.formatTimestampDisplay(m.lastUpdated);
         return `
-          <div class="status-card" style="${bgStyle}" onclick="app.openStatusModal('${m.id}')">
+          <div class="status-card" draggable="true" data-id="${m.id}" data-dept="${m.dept}" style="${bgStyle}" onclick="app.openStatusModal('${m.id}')">
             <div class="card-top-bar">
               <div class="member-info-header">
                 <img class="avatar" src="${m.avatar}" alt="${m.name}" onerror="this.src='https://via.placeholder.com/150'">
                 <div>
-                  <div style="display:flex;align-items:center;gap:0.35rem;">
+                  <div style="display:flex;align-items:center;gap:0.35rem;white-space:nowrap;">
                     <span class="member-name">${m.name}</span>
                     ${m.ext ? `<span class="ext-badge"><i class="fa-solid fa-phone"></i> ${m.ext}</span>` : ''}
                   </div>
@@ -661,6 +663,9 @@ class ImaDokoApp {
 
       return `<div class="group-section">${headerHtml}<div class="cards-grid">${cardsHtml}</div></div>`;
     }).join('');
+
+    this.bindDragEvents();
+  }
   }
 
   // ⑦ カレンダー: 予定の曜日表示バグ修正
@@ -801,7 +806,27 @@ class ImaDokoApp {
     memoContainer.classList.toggle('hidden', !member.hasMemo);
     document.getElementById('memoMessageInput').value = member.memo || '';
 
+    // ① 複数名一括共有チェックボックスの描画・初期化
+    this.renderStatusMembersCheckboxes(memberId);
+    const multiChk = document.getElementById('statusMultiCheck');
+    const multiContainer = document.getElementById('statusMultiMembersContainer');
+    if (multiChk && multiContainer) {
+      multiChk.checked = false;
+      multiContainer.classList.add('hidden');
+      multiChk.onchange = () => multiContainer.classList.toggle('hidden', !multiChk.checked);
+    }
+
     document.getElementById('statusModal').classList.add('open');
+  }
+
+  renderStatusMembersCheckboxes(currentMemberId) {
+    const container = document.getElementById('statusAdditionalMembers');
+    if (!container) return;
+    container.innerHTML = this.members.filter(m => m.id !== currentMemberId).map(m => `
+      <label class="multi-member-check-label">
+        <input type="checkbox" class="statusMemberChk" value="${m.id}">
+        <span>${m.name} (${m.dept})</span>
+      </label>`).join('');
   }
 
   selectStatusInModal(statusName) {
@@ -845,10 +870,103 @@ class ImaDokoApp {
     this.upsertMemberToSupabase(member);
     this.saveLogToSupabase(newLog);
 
+    // ① 複数名一括送信処理
+    const multiChk = document.getElementById('statusMultiCheck');
+    let updatedNames = [member.name];
+
+    if (multiChk && multiChk.checked) {
+      const selectedChks = document.querySelectorAll('.statusMemberChk:checked');
+      selectedChks.forEach(chk => {
+        const extraMem = this.members.find(m => m.id === chk.value);
+        if (extraMem) {
+          const oldSt = extraMem.status;
+          extraMem.status = newStatus;
+          extraMem.message = newMessage;
+          extraMem.hasMemo = hasMemo;
+          extraMem.memo = newMemo;
+          extraMem.lastUpdated = nowIso;
+          updatedNames.push(extraMem.name);
+
+          const extraLog = {
+            id: 'l_' + Date.now() + '_' + extraMem.id,
+            timestamp: nowIso,
+            memberName: extraMem.name,
+            dept: extraMem.dept,
+            oldStatus: oldSt,
+            newStatus,
+            message: newMessage,
+            memo: newMemo,
+            type: 'manual'
+          };
+          this.logs.unshift(extraLog);
+          this.upsertMemberToSupabase(extraMem);
+          this.saveLogToSupabase(extraLog);
+        }
+      });
+      this.saveStorage('imadoko_members', this.members);
+      this.saveStorage('imadoko_logs', this.logs);
+    }
+
     document.getElementById('statusModal').classList.remove('open');
     this.renderStatsBar();
     this.renderCurrentView();
-    this.showNoticeBanner(`【更新完了】${member.name} さんのステータスを「${newStatus}」に変更しました。`);
+    const noticeText = updatedNames.length > 1
+      ? `【一括更新完了】${updatedNames.join('、')} さんのステータスを「${newStatus}」に変更しました。`
+      : `【更新完了】${member.name} さんのステータスを「${newStatus}」に変更しました。`;
+    this.showNoticeBanner(noticeText);
+  }
+
+  // ③ 部署内ドラッグ＆ドロップイベントバインド
+  bindDragEvents() {
+    let draggedId = null;
+    let draggedDept = null;
+
+    document.querySelectorAll('[draggable="true"]').forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        draggedId = el.getAttribute('data-id');
+        draggedDept = el.getAttribute('data-dept');
+        el.classList.add('dragging');
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+      });
+
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+      });
+
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const targetDept = el.getAttribute('data-dept');
+        if (targetDept === draggedDept && el.getAttribute('data-id') !== draggedId) {
+          el.classList.add('drag-over');
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        }
+      });
+
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('drag-over');
+      });
+
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('drag-over');
+        const targetId = el.getAttribute('data-id');
+        const targetDept = el.getAttribute('data-dept');
+
+        if (draggedDept === targetDept && draggedId && targetId && draggedId !== targetId) {
+          const draggedIdx = this.members.findIndex(m => m.id === draggedId);
+          const targetIdx = this.members.findIndex(m => m.id === targetId);
+
+          if (draggedIdx !== -1 && targetIdx !== -1) {
+            const [movedItem] = this.members.splice(draggedIdx, 1);
+            this.members.splice(targetIdx, 0, movedItem);
+            this.saveStorage('imadoko_members', this.members);
+            this.renderCurrentView();
+            this.members.forEach(m => this.upsertMemberToSupabase(m));
+          }
+        }
+      });
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -1001,7 +1119,10 @@ class ImaDokoApp {
     }
     // ⑥ 複数人チェックボックス用のメンバーリスト構築
     this.renderScheduleMembersCheckboxes();
-    document.getElementById('scheduleDateInput').value = new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    document.getElementById('scheduleDateInput').value = todayStr;
+    this.updateScheduleDayOfWeekDisplay(todayStr);
     this.renderScheduleListTable();
     document.getElementById('scheduleModal').classList.add('open');
   }
@@ -1029,6 +1150,19 @@ class ImaDokoApp {
     document.getElementById('singleDateGroup').classList.remove('hidden');
     document.getElementById('weeklyDayGroup').classList.add('hidden');
     document.getElementById('scheduleDateInput').value = dateStr;
+    this.updateScheduleDayOfWeekDisplay(dateStr);
+  }
+
+  // ② カレンダー日付選択時の曜日リアルタイム表示（タイムゾーンズレ防止）
+  updateScheduleDayOfWeekDisplay(dateStr) {
+    const el = document.getElementById('scheduleDayOfWeekDisplay');
+    if (!el || !dateStr) { if (el) el.textContent = ''; return; }
+    const dayNames = ['(日)', '(月)', '(火)', '(水)', '(木)', '(金)', '(土)'];
+    const [y, mo, da] = dateStr.split('-').map(Number);
+    const dow = new Date(y, mo - 1, da).getDay();
+    const colors = ['#ef4444','#0f172a','#0f172a','#0f172a','#0f172a','#0f172a','#3b82f6'];
+    el.textContent = dayNames[dow];
+    el.style.color = colors[dow];
   }
 
   renderScheduleListTable() {
@@ -1384,6 +1518,11 @@ class ImaDokoApp {
       const isWeekly = e.target.value === 'weekly';
       document.getElementById('singleDateGroup').classList.toggle('hidden', isWeekly);
       document.getElementById('weeklyDayGroup').classList.toggle('hidden', !isWeekly);
+    });
+
+    // ② 日付選択時に曜日をリアルタイム表示
+    document.getElementById('scheduleDateInput').addEventListener('change', (e) => {
+      this.updateScheduleDayOfWeekDisplay(e.target.value);
     });
 
     // ⑥ 複数人チェックボックス表示/非表示

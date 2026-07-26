@@ -1828,22 +1828,36 @@ class ImaDokoApp {
     // Calendar
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
       if (this.calendarSubView === 'week') {
-        this.calendarDate.setDate(this.calendarDate.getDate() - 7);
+        const d = new Date(this.calendarDate);
+        d.setDate(d.getDate() - 7);
+        this.calendarDate = d;
       } else {
-        this.calendarDate.setMonth(this.calendarDate.getMonth() - 1);
+        const d = new Date(this.calendarDate);
+        d.setMonth(d.getMonth() - 1);
+        this.calendarDate = d;
       }
+      this.selectedCalendarDateStr = null;
       this.renderCalendarView();
     });
+
     document.getElementById('nextMonthBtn').addEventListener('click', () => {
       if (this.calendarSubView === 'week') {
-        this.calendarDate.setDate(this.calendarDate.getDate() + 7);
+        const d = new Date(this.calendarDate);
+        d.setDate(d.getDate() + 7);
+        this.calendarDate = d;
       } else {
-        this.calendarDate.setMonth(this.calendarDate.getMonth() + 1);
+        const d = new Date(this.calendarDate);
+        d.setMonth(d.getMonth() + 1);
+        this.calendarDate = d;
       }
+      this.selectedCalendarDateStr = null;
       this.renderCalendarView();
     });
+
     document.getElementById('todayCalBtn').addEventListener('click', () => {
       this.calendarDate = new Date();
+      const today = new Date();
+      this.selectedCalendarDateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
       this.renderCalendarView();
     });
     document.getElementById('calendarUserSelect').addEventListener('change', () => this.renderCalendarView());

@@ -719,7 +719,6 @@ class ImaDokoApp {
 
     this.bindDragEvents();
   }
-  }
 
   // ⑦ カレンダー: 予定の曜日表示バグ修正
   renderCalendarUserOptions() {

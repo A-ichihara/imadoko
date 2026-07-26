@@ -811,7 +811,102 @@ class ImaDokoApp {
       <div class="agenda-list">${agendaItemsHtml}</div>`;
   }
 
+  renderCalendarWeekView() {
+    const weekContainer = document.getElementById('calendarWeekContainer');
+    const title = document.getElementById('calendarTitle');
+    const userSelect = document.getElementById('calendarUserSelect');
+    if (!weekContainer || !title) return;
+
+    const selectedUserId = userSelect ? userSelect.value : 'ALL';
+    const curr = new Date(this.calendarDate);
+    const day = curr.getDay();
+    // 日曜日を週の始まりとする
+    const firstDayOfWeek = new Date(curr);
+    firstDayOfWeek.setDate(curr.getDate() - day);
+
+    const lastDayOfWeek = new Date(firstDayOfWeek);
+    lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+
+    const fMo = firstDayOfWeek.getMonth() + 1;
+    const fDa = firstDayOfWeek.getDate();
+    const lMo = lastDayOfWeek.getMonth() + 1;
+    const lDa = lastDayOfWeek.getDate();
+    title.textContent = `${firstDayOfWeek.getFullYear()}年${fMo}月${fDa}日 - ${lMo}月${lDa}日 (週表示)`;
+
+    const today = new Date();
+    const daysMap = ['日','月','火','水','木','金','土'];
+    let weekHtml = '';
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(firstDayOfWeek);
+      d.setDate(firstDayOfWeek.getDate() + i);
+
+      const y = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${mm}-${dd}`;
+      const dow = d.getDay();
+      const dowStr = daysMap[dow];
+      const isToday = (today.getFullYear() === y && today.getMonth() === d.getMonth() && today.getDate() === d.getDate());
+      const isSunday = dow === 0;
+      const isSaturday = dow === 6;
+      const dowStyle = isSunday ? 'color:#ef4444;' : isSaturday ? 'color:#3b82f6;' : '';
+
+      const matched = this.schedules.filter(s => {
+        const memberIds = s.memberIds || [s.memberId];
+        const userMatch = (selectedUserId === 'ALL' || memberIds.includes(selectedUserId));
+        if (!userMatch) return false;
+        if (s.type === 'once' && s.date === dateStr) return true;
+        if (s.type === 'weekly' && Number(s.dayOfWeek) === dow) return true;
+        return false;
+      });
+
+      let eventsListHtml = '';
+      if (matched.length === 0) {
+        eventsListHtml = `<div style="color:var(--text-light);font-size:0.8rem;font-style:italic;">予定なし</div>`;
+      } else {
+        eventsListHtml = matched.map(sch => {
+          const memberIds = sch.memberIds || [sch.memberId];
+          const memberNames = memberIds.map(id => {
+            const m = this.members.find(x => x.id === id);
+            return m ? m.name : '不明';
+          }).join('、');
+          const typeBadge = sch.type === 'weekly' ? '<span class="badge-dept" style="background:#e0f2fe;color:#0369a1;font-size:0.7rem;">定例</span>' : '<span class="badge-dept" style="font-size:0.7rem;">単発</span>';
+
+          return `
+            <div class="week-event-item">
+              <div>
+                <strong>【${sch.status}】</strong> ${memberNames}: ${this.escapeHtml(sch.title)} ${typeBadge}
+              </div>
+              <button class="btn btn-danger-outline btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;" onclick="app.deleteSchedule('${sch.id}')">削除</button>
+            </div>`;
+        }).join('');
+      }
+
+      weekHtml += `
+        <div class="week-day-card ${isToday ? 'today' : ''}" onclick="app.selectCalendarDate('${dateStr}')">
+          <div class="week-day-header">
+            <div class="week-day-title">
+              <span style="${dowStyle}">${d.getMonth()+1}月${d.getDate()}日 (${dowStr})</span>
+              ${isToday ? '<span class="badge-dept" style="background:var(--primary-color);color:white;font-size:0.68rem;">今日</span>' : ''}
+            </div>
+            <button class="btn btn-primary btn-sm" style="padding:0.15rem 0.5rem;font-size:0.75rem;" onclick="event.stopPropagation();app.quickAddScheduleForDate('${dateStr}')">
+              <i class="fa-solid fa-plus"></i> 追加
+            </button>
+          </div>
+          <div class="week-events-list">${eventsListHtml}</div>
+        </div>`;
+    }
+
+    weekContainer.innerHTML = weekHtml;
+  }
+
   renderCalendarView() {
+    if (this.calendarSubView === 'week') {
+      this.renderCalendarWeekView();
+      return;
+    }
+
     const grid = document.getElementById('calendarGrid');
     const title = document.getElementById('calendarTitle');
     const userSelect = document.getElementById('calendarUserSelect');
@@ -1732,11 +1827,19 @@ class ImaDokoApp {
 
     // Calendar
     document.getElementById('prevMonthBtn').addEventListener('click', () => {
-      this.calendarDate.setMonth(this.calendarDate.getMonth() - 1);
+      if (this.calendarSubView === 'week') {
+        this.calendarDate.setDate(this.calendarDate.getDate() - 7);
+      } else {
+        this.calendarDate.setMonth(this.calendarDate.getMonth() - 1);
+      }
       this.renderCalendarView();
     });
     document.getElementById('nextMonthBtn').addEventListener('click', () => {
-      this.calendarDate.setMonth(this.calendarDate.getMonth() + 1);
+      if (this.calendarSubView === 'week') {
+        this.calendarDate.setDate(this.calendarDate.getDate() + 7);
+      } else {
+        this.calendarDate.setMonth(this.calendarDate.getMonth() + 1);
+      }
       this.renderCalendarView();
     });
     document.getElementById('todayCalBtn').addEventListener('click', () => {
@@ -1744,6 +1847,28 @@ class ImaDokoApp {
       this.renderCalendarView();
     });
     document.getElementById('calendarUserSelect').addEventListener('change', () => this.renderCalendarView());
+
+    // カレンダーサブビュー (月 / 週) 切り替え
+    const btnCalMonth = document.getElementById('calSubViewMonth');
+    const btnCalWeek = document.getElementById('calSubViewWeek');
+    if (btnCalMonth && btnCalWeek) {
+      btnCalMonth.addEventListener('click', () => {
+        this.calendarSubView = 'month';
+        btnCalMonth.classList.add('active');
+        btnCalWeek.classList.remove('active');
+        document.getElementById('calMonthViewWrap').classList.remove('hidden');
+        document.getElementById('calWeekViewWrap').classList.add('hidden');
+        this.renderCalendarView();
+      });
+      btnCalWeek.addEventListener('click', () => {
+        this.calendarSubView = 'week';
+        btnCalWeek.classList.add('active');
+        btnCalMonth.classList.remove('active');
+        document.getElementById('calMonthViewWrap').classList.add('hidden');
+        document.getElementById('calWeekViewWrap').classList.remove('hidden');
+        this.renderCalendarView();
+      });
+    }
   }
 
   // --------------------------------------------------------------------------

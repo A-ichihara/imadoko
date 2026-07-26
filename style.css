@@ -1366,44 +1366,79 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* スマートフォン・小型タブレット (〜768px) */
 @media (max-width: 768px) {
-  /* ヘッダー */
+  /* ヘッダー全体の最適化 */
   .app-header {
-    padding: 0.6rem 0.85rem;
-    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    gap: 0.4rem;
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  /* ロゴ */
-  .logo { gap: 0.35rem; }
-  .logo-text { font-size: 1.1rem; }
-  .logo-badge { font-size: 0.6rem; padding: 0.1rem 0.35rem; }
+  /* 1行目: ロゴ + 現在時刻 + メンバー管理ボタン (100%画面内に収まる) */
+  .header-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+  }
 
-  /* 現在時刻表示 - スマホでも表示（コンパクトに） */
+  .logo-text { font-size: 1.05rem; }
+  .logo-badge { display: none; }
+
   .current-time-display {
     display: flex !important;
-    font-size: 0.7rem;
-    gap: 0.25rem;
+    font-size: 0.68rem;
     padding: 0.2rem 0.4rem;
-    background: rgba(59,130,246,0.07);
+    background: rgba(59,130,246,0.08);
     border-radius: 6px;
   }
-  #fullDateClock { font-size: 0.68rem; letter-spacing: -0.02em; }
 
-  /* ヘッダー右側ボタン */
-  .btn-text-desktop { display: none; }
-  .header-right { gap: 0.3rem; }
-  .header-right .btn {
-    padding: 0.45rem 0.6rem;
-    font-size: 0.78rem;
-    min-width: 36px;
-    justify-content: center;
+  /* メンバー管理ボタンを1行目右端にハイライト表示 */
+  .primary-action-btn {
+    padding: 0.35rem 0.7rem !important;
+    font-size: 0.78rem !important;
+    margin-left: auto;
   }
 
-  /* 検索・フィルター */
-  .search-box input { width: 110px; font-size: 0.82rem; }
-  .search-box input:focus { width: 140px; }
+  /* 2行目: ビュー切替ボタン (リスト / カード / カレンダー) */
+  .header-center {
+    order: 2;
+    width: 100%;
+    margin-top: 0.1rem;
+  }
+
+  .view-switch-group {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .view-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.8rem;
+  }
+
+  /* 3行目: 検索 & フィルターボタン群 */
+  .header-right {
+    order: 3;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
+    margin-top: 0.1rem;
+    overflow-x: auto;
+  }
+
+  .search-box { flex: 1; min-width: 100px; }
+  .search-box input { width: 100%; font-size: 0.78rem; padding: 0.35rem 0.5rem 0.35rem 1.8rem; }
+  .dept-select { font-size: 0.78rem; padding: 0.35rem 0.4rem; }
 
   /* メインコンテンツ */
-  .main-content { padding: 0.75rem; gap: 0.5rem; }
+  .main-content { padding: 0.6rem 0.5rem; gap: 0.5rem; }
 
   /* カード形式 - スマホでは1列 */
   .cards-grid {
@@ -1411,6 +1446,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     gap: 0.6rem;
   }
   .status-card { padding: 0.85rem; }
+}
 
   /* リスト形式 - 横スクロール対応 */
   .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1601,14 +1637,92 @@ input:checked + .slider:before { transform: translateX(20px); }
   background-color: #0369a1;
 }
 
-/* スマホ表示時の Google カレンダー風ドット表示 */
-@media (max-width: 768px) {
-  .cal-events-list { display: none; }
-  .cal-events-dots { display: flex; }
-  .calendar-agenda-container { margin-top: 0.75rem; padding: 0.75rem; }
-  .agenda-card { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
-  .agenda-card-actions { width: 100%; text-align: right; }
+/* =====================================================================
+   カレンダー「月 / 週」切り替えサブタブ & 週表示スタイル
+   ===================================================================== */
+.cal-subview-group {
+  display: inline-flex;
+  background: var(--background-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  margin-left: 0.5rem;
 }
+
+.cal-subview-btn {
+  border: none;
+  background: transparent;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cal-subview-btn.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 週表示 (Week View) レイアウト */
+.calendar-week-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.week-day-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.week-day-card.today {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.week-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.week-day-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.week-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.week-event-item {
+  background: var(--background-main);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 
 
 

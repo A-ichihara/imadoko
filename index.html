@@ -123,16 +123,22 @@
                 <h2 id="calendarTitle">2026年7月</h2>
                 <button id="nextMonthBtn" class="cal-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
                 <button id="todayCalBtn" class="cal-today-btn">今日</button>
+
+                <!-- 月 / 週 切替スイッチ -->
+                <div class="cal-subview-group">
+                  <button id="calSubViewMonth" class="cal-subview-btn active">月</button>
+                  <button id="calSubViewWeek" class="cal-subview-btn">週</button>
+                </div>
               </div>
               
               <div class="calendar-right-tools">
                 <div class="calendar-user-filter">
-                  <label><i class="fa-solid fa-user"></i> 対象社員:</label>
+                  <label><i class="fa-solid fa-user"></i> 社員:</label>
                   <select id="calendarUserSelect"></select>
                 </div>
                 <!-- Requirement ⑧: 未来・定例予定の登録ボタン -->
                 <button id="btnAddScheduleBtn" class="btn btn-primary btn-sm">
-                  <i class="fa-solid fa-calendar-plus"></i> 未来/定例予定を登録
+                  <i class="fa-solid fa-calendar-plus"></i> <span>予定登録</span>
                 </button>
               </div>
             </div>

@@ -748,6 +748,69 @@ class ImaDokoApp {
       this.members.map(m => `<option value="${m.id}">${m.name} (${m.dept})</option>`).join('');
   }
 
+  selectCalendarDate(dateStr) {
+    this.selectedCalendarDateStr = dateStr;
+    this.renderCalendarView();
+  }
+
+  renderCalendarAgenda(dateStr, matchedSchedules) {
+    const agendaBox = document.getElementById('calendarAgendaContainer');
+    if (!agendaBox) return;
+
+    if (!dateStr) {
+      const today = new Date();
+      dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    }
+
+    const daysMap = ['日','月','火','水','木','金','土'];
+    const [y, mo, da] = dateStr.split('-').map(Number);
+    const dow = new Date(y, mo - 1, da).getDay();
+    const dowStr = daysMap[dow];
+    const dowClass = dow === 0 ? 'color:#ef4444;' : dow === 6 ? 'color:#3b82f6;' : '';
+
+    let agendaItemsHtml = '';
+    if (matchedSchedules.length === 0) {
+      agendaItemsHtml = `<div class="agenda-empty"><i class="fa-regular fa-calendar-xmark"></i> この日の予定はありません</div>`;
+    } else {
+      agendaItemsHtml = matchedSchedules.map(sch => {
+        const memberIds = sch.memberIds || [sch.memberId];
+        const memberNames = memberIds.map(id => {
+          const m = this.members.find(x => x.id === id);
+          return m ? m.name : '不明';
+        }).join('、');
+        const badgeColor = sch.type === 'weekly' ? '#0369a1' : '#3b82f6';
+        const typeLabel = sch.type === 'weekly' ? '毎週定例' : '単発指定';
+
+        return `
+          <div class="agenda-card">
+            <div class="agenda-card-header">
+              <span class="agenda-member-name"><i class="fa-solid fa-user"></i> ${memberNames}</span>
+              <span class="badge-dept" style="background:${badgeColor};color:white;">${typeLabel}</span>
+            </div>
+            <div class="agenda-card-title"><strong>【${sch.status}】</strong> ${this.escapeHtml(sch.title)}</div>
+            <div class="agenda-card-actions">
+              <button class="btn btn-danger-outline btn-sm" onclick="app.deleteSchedule('${sch.id}')">
+                <i class="fa-solid fa-trash"></i> 削除
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    agendaBox.innerHTML = `
+      <div class="agenda-header">
+        <div class="agenda-title">
+          <i class="fa-regular fa-calendar-check" style="color:var(--primary-color);"></i>
+          <span>${y}年${mo}月${da}日 <strong style="${dowClass}">(${dowStr})</strong> の予定</span>
+          <span class="agenda-count-badge">${matchedSchedules.length}件</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="app.quickAddScheduleForDate('${dateStr}')">
+          <i class="fa-solid fa-plus"></i> 予定を追加
+        </button>
+      </div>
+      <div class="agenda-list">${agendaItemsHtml}</div>`;
+  }
+
   renderCalendarView() {
     const grid = document.getElementById('calendarGrid');
     const title = document.getElementById('calendarTitle');
@@ -758,11 +821,16 @@ class ImaDokoApp {
     const month = this.calendarDate.getMonth();
     title.textContent = `${year}年${month + 1}月`;
 
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    if (!this.selectedCalendarDateStr) {
+      this.selectedCalendarDateStr = todayStr;
+    }
+
     const selectedUserId = userSelect ? userSelect.value : 'ALL';
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    const today = new Date();
 
     let html = '';
 
@@ -771,24 +839,23 @@ class ImaDokoApp {
       html += `<div class="cal-day-cell other-month"><div class="cal-day-number">${daysInPrevMonth - i}</div></div>`;
     }
 
+    let selectedMatchedSchedules = [];
+
     // 当月
     for (let d = 1; d <= daysInMonth; d++) {
-      // ⑦ ISOStringではなくローカル日付文字列で生成（タイムゾーンのズレを防止）
       const mm = String(month + 1).padStart(2, '0');
       const dd = String(d).padStart(2, '0');
       const cellDateStr = `${year}-${mm}-${dd}`;
       const cellDateObj = new Date(year, month, d);
-      const dayOfWeek = cellDateObj.getDay(); // 0=Sun, 1=Mon, ...
+      const dayOfWeek = cellDateObj.getDay();
       const isToday = (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d);
+      const isSelected = (this.selectedCalendarDateStr === cellDateStr);
 
       const isSunday = dayOfWeek === 0;
       const isSaturday = dayOfWeek === 6;
       const dayClass = isSunday ? 'sunday' : isSaturday ? 'saturday' : '';
 
-      let eventsHtml = '';
-
       const matchedSchedules = this.schedules.filter(s => {
-        // ⑥ 複数人対応: memberIds配列をチェック
         const memberIds = s.memberIds || [s.memberId];
         const userMatch = (selectedUserId === 'ALL' || memberIds.includes(selectedUserId));
         if (!userMatch) return false;
@@ -796,6 +863,13 @@ class ImaDokoApp {
         if (s.type === 'weekly' && Number(s.dayOfWeek) === dayOfWeek) return true;
         return false;
       });
+
+      if (isSelected) {
+        selectedMatchedSchedules = matchedSchedules;
+      }
+
+      let eventsHtml = '';
+      let dotsHtml = '';
 
       matchedSchedules.forEach(sch => {
         const memberIds = sch.memberIds || [sch.memberId];
@@ -816,6 +890,7 @@ class ImaDokoApp {
           <div class="cal-event-pill ${badgeClass}" title="${memberName}: ${sch.title} (${sch.status})">
             ${icon} ${memberName ? memberName + ': ' : ''}${sch.title}
           </div>`;
+        dotsHtml += `<span class="cal-event-dot ${sch.type === 'weekly' ? 'weekly' : ''}"></span>`;
       });
 
       if (isToday && matchedSchedules.length === 0 && selectedUserId !== 'ALL') {
@@ -827,8 +902,9 @@ class ImaDokoApp {
       }
 
       html += `
-        <div class="cal-day-cell ${isToday ? 'today' : ''} ${dayClass}" onclick="app.quickAddScheduleForDate('${cellDateStr}')">
+        <div class="cal-day-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${dayClass}" onclick="app.selectCalendarDate('${cellDateStr}')">
           <div class="cal-day-number">${d}</div>
+          <div class="cal-events-dots">${dotsHtml}</div>
           <div class="cal-events-list">${eventsHtml}</div>
         </div>`;
     }
@@ -841,6 +917,7 @@ class ImaDokoApp {
     }
 
     grid.innerHTML = html;
+    this.renderCalendarAgenda(this.selectedCalendarDateStr, selectedMatchedSchedules);
   }
 
   // --------------------------------------------------------------------------

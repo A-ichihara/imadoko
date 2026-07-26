@@ -119,7 +119,15 @@ class ImaDokoApp {
     this.supabase = null;
     this.initSupabaseClient();
 
-    this.members = this.loadStorage('imadoko_members', INITIAL_MEMBERS);
+    // 旧データ（営業部等）のローカルキャッシュ削除チェック
+    let rawMembers = this.loadStorage('imadoko_members', INITIAL_MEMBERS);
+    const hasOldDeptsInLocal = rawMembers.some(m => m.dept === '営業部' || m.dept === '開発部' || m.dept === '企画部');
+    if (hasOldDeptsInLocal) {
+      rawMembers = INITIAL_MEMBERS;
+      this.saveStorage('imadoko_members', INITIAL_MEMBERS);
+    }
+    this.members = rawMembers;
+
     this.statusColors = this.loadStorage('imadoko_colors', this.getDefaultColors());
 
     // 端末毎のローカル設定
@@ -211,9 +219,13 @@ class ImaDokoApp {
       // 1. Members
       const { data: dbMembers, error: mErr } = await this.supabase.from('members').select('*');
       if (!mErr && dbMembers) {
+        const currentDepts = new Set(dbMembers.map(m => m.dept));
+        const isValid3Depts = currentDepts.has('空調衛生部') && currentDepts.has('電気部') && currentDepts.has('総務部');
         const hasOldDepts = dbMembers.some(m => m.dept === '営業部' || m.dept === '開発部' || m.dept === '企画部');
-        if (dbMembers.length === 0 || hasOldDepts) {
-          // 旧データまたは空の場合は新しい部署名（空調衛生部・電気部・総務部）で再シード
+
+        if (dbMembers.length === 0 || hasOldDepts || !isValid3Depts) {
+          // 旧データが含まれるか3部署が揃っていない場合は、新しい部署名（空調衛生部・電気部・総務部）で再シード
+          console.log('Reseeding Supabase with new 3 departments demo data...');
           await this.seedInitialMembersToSupabase();
         } else {
           this.members = dbMembers.map(m => ({
@@ -1514,6 +1526,16 @@ class ImaDokoApp {
     });
     document.getElementById('addMemberForm').addEventListener('submit', (e) => this.handleSaveMember(e));
     document.getElementById('cancelMemberEditBtn').addEventListener('click', () => this.resetMemberForm());
+
+    const btnResetDemo = document.getElementById('btnResetDemoMembers');
+    if (btnResetDemo) {
+      btnResetDemo.addEventListener('click', async () => {
+        if (confirm('登録データを「空調衛生部」「電気部」「総務部」の初期デモデータに復元・全リセットしますか？')) {
+          await this.seedInitialMembersToSupabase();
+          this.showNoticeBanner('【復元完了】最新のデモデータ（3部署8名）にリセットしました。');
+        }
+      });
+    }
 
     // ③ 社員一覧折り畳みトグル
     const toggleBtn = document.getElementById('toggleMemberListBtn');

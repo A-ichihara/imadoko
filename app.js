@@ -20,48 +20,62 @@ const DEFAULT_STATUSES = [
 
 const INITIAL_MEMBERS = [
   {
-    id: 'm1', name: '山田 太郎', dept: '営業部', role: '部長', ext: '101',
+    id: 'm1', name: '山田 太郎', dept: '空調衛生部', role: '部長', ext: '101',
     email: 'yamada.t@example.com',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    status: '在席', message: '14:00~ A社様とオンライン商談中',
-    hasMemo: true, memo: '経理部より伝言: 月次経費申請の件でお電話ください。',
+    status: '在席', message: '14:00~ 協力業者とのオンライン打合せ中',
+    hasMemo: true, memo: '総務部より伝言: 月次経費申請の件でお電話ください。',
     lastUpdated: new Date(Date.now() - 1000 * 60 * 15).toISOString()
   },
   {
-    id: 'm2', name: '佐藤 花子', dept: '開発部', role: 'リードエンジニア', ext: '201',
+    id: 'm2', name: '佐藤 花子', dept: '空調衛生部', role: '主任', ext: '102',
     email: 'sato.h@example.com',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    status: '在宅勤務', message: '終日在宅。連絡はSlackまたはTeamsまで',
+    status: '外出', message: 'A現場 機器点検中 (16:30戻り予定)',
     hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 45).toISOString()
   },
   {
-    id: 'm3', name: '鈴木 一郎', dept: '営業部', role: '主任', ext: '102',
+    id: 'm3', name: '鈴木 一郎', dept: '空調衛生部', role: '係長', ext: '103',
     email: 'suzuki.i@example.com',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    status: '直行・直帰', message: '東京オフィス訪問後、直接帰宅します。17時復帰不可',
+    status: '直行・直帰', message: 'B現場 施工立会後、直接帰宅。17時以降復帰不可',
     hasMemo: true, memo: '直行先から直帰の旨、受付共有済みです。',
     lastUpdated: new Date(Date.now() - 1000 * 60 * 120).toISOString()
   },
   {
-    id: 'm4', name: '高橋 健太', dept: '企画部', role: 'マネージャー', ext: '301',
+    id: 'm4', name: '高橋 健太', dept: '電気部', role: '部長', ext: '201',
     email: 'takahashi.k@example.com',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    status: '社内打合せ中', message: '3F 会議室Bにて新規プロジェクトキックオフ中',
+    status: '社内打合せ中', message: '3F 会議室Bにて新規物件キックオフ中',
     hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 30).toISOString()
   },
   {
-    id: 'm5', name: '田中 美咲', dept: '総務部', role: 'スタッフ', ext: '501',
+    id: 'm5', name: '田中 誠', dept: '電気部', role: '主任', ext: '202',
     email: 'tanaka.m@example.com',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-    status: '退勤', message: 'お疲れ様でした。',
-    hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 360).toISOString()
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+    status: '在宅勤務', message: '終日在宅。連絡はTeamsまで',
+    hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 60).toISOString()
   },
   {
-    id: 'm6', name: '伊藤 誠', dept: '開発部', role: 'フロントエンド開発', ext: '202',
+    id: 'm6', name: '伊藤 美咲', dept: '電気部', role: '係長', ext: '203',
     email: 'ito.m@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-    status: '外出', message: 'データセンター現地作業中 (16:30戻り予定)',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
+    status: '直行', message: 'C現場へ直行中',
     hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 90).toISOString()
+  },
+  {
+    id: 'm7', name: '中村 浩二', dept: '総務部', role: '部長', ext: '301',
+    email: 'nakamura.k@example.com',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80',
+    status: '在席', message: '',
+    hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 10).toISOString()
+  },
+  {
+    id: 'm8', name: '小林 さくら', dept: '総務部', role: 'スタッフ', ext: '302',
+    email: 'kobayashi.s@example.com',
+    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&q=80',
+    status: '退勤', message: 'お疲れ様でした。',
+    hasMemo: false, memo: '', lastUpdated: new Date(Date.now() - 1000 * 60 * 360).toISOString()
   }
 ];
 
@@ -72,26 +86,26 @@ const INITIAL_SCHEDULES = [
     dayOfWeek: null, status: '休み', title: '有給休暇'
   },
   {
-    id: 'sch_2', memberId: 'm2', memberIds: ['m2', 'm6'], type: 'once',
-    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString().slice(0, 10),
-    dayOfWeek: null, status: '外出', title: 'B社 現地調査'
+    id: 'sch_2', memberId: 'm3', memberIds: ['m3', 'm6'], type: 'once',
+    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString().slice(0, 10),
+    dayOfWeek: null, status: '外出', title: 'D現場 竣工検査立会'
   },
   {
-    id: 'sch_3', memberId: 'm2', memberIds: ['m2'], type: 'weekly',
+    id: 'sch_3', memberId: 'm5', memberIds: ['m5'], type: 'weekly',
     date: null, dayOfWeek: 3, status: '在宅勤務', title: '定例: 毎週水曜在宅'
   },
   {
     id: 'sch_4', memberId: 'm4', memberIds: ['m4'], type: 'weekly',
-    date: null, dayOfWeek: 1, status: '社内打合せ中', title: '定例: 毎週月曜 開発ミーティング'
+    date: null, dayOfWeek: 1, status: '社内打合せ中', title: '定例: 毎週月曜 部門ミーティング'
   }
 ];
 
 const INITIAL_LOGS = [
   {
     id: 'l1', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    memberName: '山田 太郎', dept: '営業部', oldStatus: '外出', newStatus: '在席',
-    message: '14:00~ A社様とオンライン商談中',
-    memo: '経理部より伝言: 月次経費申請の件でお電話ください。',
+    memberName: '山田 太郎', dept: '空調衛生部', oldStatus: '外出', newStatus: '在席',
+    message: '14:00~ 協力業者とのオンライン打合せ中',
+    memo: '総務部より伝言: 月次経費申請の件でお電話ください。',
     type: 'manual'
   }
 ];
@@ -197,8 +211,9 @@ class ImaDokoApp {
       // 1. Members
       const { data: dbMembers, error: mErr } = await this.supabase.from('members').select('*');
       if (!mErr && dbMembers) {
-        if (dbMembers.length === 0) {
-          // 初期シードデータ投入
+        const hasOldDepts = dbMembers.some(m => m.dept === '営業部' || m.dept === '開発部' || m.dept === '企画部');
+        if (dbMembers.length === 0 || hasOldDepts) {
+          // 旧データまたは空の場合は新しい部署名（空調衛生部・電気部・総務部）で再シード
           await this.seedInitialMembersToSupabase();
         } else {
           this.members = dbMembers.map(m => ({
@@ -264,6 +279,8 @@ class ImaDokoApp {
 
   async seedInitialMembersToSupabase() {
     if (!this.supabase) return;
+    // 旧データ全削除
+    await this.supabase.from('members').delete().neq('id', '');
     const formatted = INITIAL_MEMBERS.map(m => ({
       id: m.id,
       name: m.name,
@@ -279,6 +296,12 @@ class ImaDokoApp {
       last_updated: m.lastUpdated
     }));
     await this.supabase.from('members').insert(formatted);
+    this.members = INITIAL_MEMBERS;
+    this.saveStorage('imadoko_members', this.members);
+    this.renderDeptFilterOptions();
+    this.renderStatsBar();
+    this.renderCurrentView();
+    this.renderCalendarUserOptions();
   }
 
   async upsertMemberToSupabase(member) {

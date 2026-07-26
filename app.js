@@ -291,84 +291,102 @@ class ImaDokoApp {
 
   async seedInitialMembersToSupabase() {
     if (!this.supabase) return;
-    // 旧データ全削除
-    await this.supabase.from('members').delete().neq('id', '');
-    const formatted = INITIAL_MEMBERS.map(m => ({
-      id: m.id,
-      name: m.name,
-      dept: m.dept,
-      role: m.role,
-      ext: m.ext,
-      email: m.email,
-      avatar: m.avatar,
-      status: m.status,
-      message: m.message,
-      has_memo: m.hasMemo,
-      memo: m.memo,
-      last_updated: m.lastUpdated
-    }));
-    await this.supabase.from('members').insert(formatted);
-    this.members = INITIAL_MEMBERS;
-    this.saveStorage('imadoko_members', this.members);
-    this.renderDeptFilterOptions();
-    this.renderStatsBar();
-    this.renderCurrentView();
-    this.renderCalendarUserOptions();
+    try {
+      const formatted = INITIAL_MEMBERS.map(m => ({
+        id: m.id,
+        name: m.name,
+        dept: m.dept,
+        role: m.role,
+        ext: m.ext,
+        email: m.email,
+        avatar: m.avatar,
+        status: m.status,
+        message: m.message,
+        has_memo: m.hasMemo,
+        memo: m.memo,
+        last_updated: m.lastUpdated
+      }));
+      await this.supabase.from('members').upsert(formatted);
+      this.members = INITIAL_MEMBERS;
+      this.saveStorage('imadoko_members', this.members);
+      this.renderDeptFilterOptions();
+      this.renderStatsBar();
+      this.renderCurrentView();
+      this.renderCalendarUserOptions();
+    } catch (e) {
+      console.warn('Supabase seed warning:', e);
+    }
   }
 
   async upsertMemberToSupabase(member) {
     if (!this.supabase) return;
-    const payload = {
-      id: member.id,
-      name: member.name,
-      dept: member.dept,
-      role: member.role || '',
-      ext: member.ext || '',
-      email: member.email,
-      avatar: member.avatar || '',
-      status: member.status,
-      message: member.message || '',
-      has_memo: !!member.hasMemo,
-      memo: member.memo || '',
-      last_updated: member.lastUpdated || new Date().toISOString()
-    };
-    await this.supabase.from('members').upsert(payload);
+    try {
+      const payload = {
+        id: member.id,
+        name: member.name,
+        dept: member.dept,
+        role: member.role || '',
+        ext: member.ext || '',
+        email: member.email,
+        avatar: member.avatar || '',
+        status: member.status,
+        message: member.message || '',
+        has_memo: !!member.hasMemo,
+        memo: member.memo || '',
+        last_updated: member.lastUpdated || new Date().toISOString()
+      };
+      await this.supabase.from('members').upsert(payload);
+    } catch (e) {
+      console.warn('Supabase member upsert warning:', e);
+    }
   }
 
   async deleteMemberFromSupabase(id) {
     if (!this.supabase) return;
-    await this.supabase.from('members').delete().eq('id', id);
+    try {
+      await this.supabase.from('members').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase member delete warning:', e);
+    }
   }
 
   async upsertScheduleToSupabase(sch) {
     if (!this.supabase) return;
-    const payload = {
-      id: sch.id,
-      member_id: sch.memberId,
-      member_ids: sch.memberIds || [sch.memberId],
-      type: sch.type,
-      date: sch.date || null,
-      day_of_week: sch.dayOfWeek !== undefined ? sch.dayOfWeek : null,
-      status: sch.status,
-      title: sch.title
-    };
-    await this.supabase.from('schedules').upsert(payload);
+    try {
+      const payload = {
+        id: sch.id,
+        member_id: sch.memberId,
+        member_ids: sch.memberIds || [sch.memberId],
+        type: sch.type,
+        date: sch.date || null,
+        day_of_week: sch.dayOfWeek !== undefined ? sch.dayOfWeek : null,
+        status: sch.status,
+        title: sch.title
+      };
+      await this.supabase.from('schedules').upsert(payload);
+    } catch (e) {
+      console.warn('Supabase schedule upsert warning:', e);
+    }
   }
 
   async saveLogToSupabase(log) {
     if (!this.supabase) return;
-    const payload = {
-      id: log.id,
-      timestamp: log.timestamp,
-      member_name: log.memberName,
-      dept: log.dept,
-      old_status: log.oldStatus,
-      new_status: log.newStatus,
-      message: log.message || '',
-      memo: log.memo || '',
-      type: log.type || 'manual'
-    };
-    await this.supabase.from('logs').insert(payload);
+    try {
+      const payload = {
+        id: log.id,
+        timestamp: log.timestamp,
+        member_name: log.memberName,
+        dept: log.dept,
+        old_status: log.oldStatus,
+        new_status: log.newStatus,
+        message: log.message || '',
+        memo: log.memo || '',
+        type: log.type || 'manual'
+      };
+      await this.supabase.from('logs').insert(payload);
+    } catch (e) {
+      console.warn('Supabase log insert warning:', e);
+    }
   }
 
   subscribeRealtimeChanges() {
@@ -1111,14 +1129,17 @@ class ImaDokoApp {
     }
 
     this.saveStorage('imadoko_members', this.members);
-    if (targetMember) this.upsertMemberToSupabase(targetMember);
-
     this.resetMemberForm();
     this.renderMemberListTable();
     this.renderDeptFilterOptions();
     this.renderStatsBar();
     this.renderCurrentView();
     this.renderCalendarUserOptions();
+
+    // Supabaseへの非同期送信 (失敗しても画面動作に影響しない)
+    if (targetMember) {
+      this.upsertMemberToSupabase(targetMember);
+    }
   }
 
   editMember(id) {

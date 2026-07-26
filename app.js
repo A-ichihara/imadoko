@@ -511,16 +511,26 @@ class ImaDokoApp {
   formatTimestampDisplay(isoString) {
     if (!isoString) return '-';
     const date = new Date(isoString);
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    // 24時間超の場合は必ず日付を表示（設定に関わらず）
+    if (diffDays >= 1) {
+      const mo = date.getMonth() + 1;
+      const da = date.getDate();
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      return `${mo}/${da} ${hh}:${mm}`;
+    }
+
     if (this.settings.showExactTime) {
       return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
     } else {
-      const diffMs = Date.now() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
       if (diffMins < 1) return 'たった今';
       if (diffMins < 60) return `${diffMins}分前`;
-      if (diffHours < 24) return `${diffHours}時間前`;
-      return `${Math.floor(diffHours / 24)}日前`;
+      return `${diffHours}時間前`;
     }
   }
 

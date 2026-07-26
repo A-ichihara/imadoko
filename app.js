@@ -139,7 +139,8 @@ class ImaDokoApp {
     this.schedules = this.loadStorage('imadoko_schedules', INITIAL_SCHEDULES);
     this.logs = this.loadStorage('imadoko_logs', INITIAL_LOGS);
 
-    this.currentView = 'list';
+    // ページリロード後もビュー（リスト/カード/カレンダー）を維持
+    this.currentView = this.loadStorage('imadoko_current_view', 'list');
     // ② リスト形式の表示単位は「部署毎」をデフォルトに
     this.groupMode = 'dept';
 
@@ -194,6 +195,15 @@ class ImaDokoApp {
 
     this.renderDeptFilterOptions();
     this.renderStatsBar();
+
+    // ローカルストレージから復元したビューのタブ・ペインをアクティブにする
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+    const savedViewBtn = document.querySelector(`.view-btn[data-view="${this.currentView}"]`);
+    const savedViewPane = document.getElementById(`${this.currentView}View`);
+    if (savedViewBtn) savedViewBtn.classList.add('active');
+    if (savedViewPane) savedViewPane.classList.add('active');
+
     this.renderCurrentView();
     this.renderCalendarUserOptions();
     this.renderStatusOptionsInScheduleModal();
@@ -1523,6 +1533,7 @@ class ImaDokoApp {
         e.currentTarget.classList.add('active');
         document.getElementById(`${view}View`).classList.add('active');
         this.currentView = view;
+        this.saveStorage('imadoko_current_view', view); // ビュー選択を保存
         this.renderCurrentView();
       });
     });

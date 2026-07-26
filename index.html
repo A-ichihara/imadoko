@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImaDoko - 社員行動予定管理システム</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;900&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <i class="fa-solid fa-location-dot logo-icon"></i>
+          <span class="logo-text">ImaDoko</span>
+          <span class="logo-badge">デモ版</span>
+        </div>
+
+        <!-- Requirement ⑦: 西暦 (和暦) + 日付 + 曜日 + 時刻 -->
+        <div class="current-time-display" id="currentTimeDisplay">
+          <i class="fa-regular fa-clock"></i>
+          <span id="fullDateClock">----年(--) --月--日 (-) --:--:--</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Requirement ①: 並び順を リスト -> カード -> カレンダー に変更 -->
+        <div class="view-switch-group">
+          <button class="view-btn active" data-view="list" title="リスト形式">
+            <i class="fa-solid fa-list-ul"></i> <span>リスト</span>
+          </button>
+          <button class="view-btn" data-view="card" title="カード形式">
+            <i class="fa-solid fa-border-all"></i> <span>カード</span>
+          </button>
+          <button class="view-btn" data-view="calendar" title="カレンダー形式">
+            <i class="fa-solid fa-calendar-days"></i> <span>カレンダー</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Requirement ③ & ⑥: グループ化モード選択 (部署毎 / ステータス毎 / グループなし) -->
+        <div class="group-mode-select-wrap">
+          <label for="groupModeSelect" class="group-mode-label"><i class="fa-solid fa-layer-group"></i> 表示単位:</label>
+          <select id="groupModeSelect" class="dept-select">
+            <option value="dept" selected>部署毎</option>
+            <option value="status">ステータス毎</option>
+          </select>
+        </div>
+
+        <!-- Search -->
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="名前・部署・内線・メモで検索...">
+        </div>
+
+        <!-- Filter by Dept -->
+        <select id="deptFilter" class="dept-select">
+          <option value="ALL">全部署を表示</option>
+        </select>
+
+        <!-- Actions -->
+        <button id="btnAutoSimulate" class="icon-btn highlight-btn" title="自動処理シミュレーター (10:15 / 0:00)">
+          <i class="fa-solid fa-robot"></i> <span class="btn-text-desktop">自動処理</span>
+        </button>
+        <button id="btnLogs" class="icon-btn" title="変更ログ & CSV出力">
+          <i class="fa-solid fa-file-csv"></i> <span class="btn-text-desktop">ログ/CSV</span>
+        </button>
+        <button id="btnSettings" class="icon-btn" title="設定 (色・表示設定)">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button id="btnManageMembers" class="icon-btn primary-action-btn" title="メンバー登録・編集">
+          <i class="fa-solid fa-user-plus"></i> <span class="btn-text-desktop">メンバー管理</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Auto-Action Notification Banner -->
+    <div id="noticeBanner" class="notice-banner hidden">
+      <div class="notice-content">
+        <i class="fa-solid fa-circle-info notice-icon"></i>
+        <span id="noticeText">自動シミュレーション情報</span>
+      </div>
+      <button class="notice-close" onclick="document.getElementById('noticeBanner').classList.add('hidden')">&times;</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Status Summary Stats Bar -->
+      <div class="stats-bar" id="statsBar">
+        <!-- Dynamic status counts will be injected here -->
+      </div>
+
+      <!-- Views Container -->
+      <div id="viewContainer" class="views-container">
+
+        <!-- List View (Default First Requirement ①) -->
+        <div id="listView" class="view-pane active">
+          <div id="listGroupContainer">
+            <!-- Dynamic grouped list tables will be rendered here -->
+          </div>
+        </div>
+
+        <!-- Card View -->
+        <div id="cardView" class="view-pane">
+          <div id="cardGroupContainer">
+            <!-- Dynamic grouped cards will be rendered here -->
+          </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div id="calendarView" class="view-pane">
+          <div class="calendar-layout">
+            <div class="calendar-header">
+              <div class="calendar-controls">
+                <button id="prevMonthBtn" class="cal-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2 id="calendarTitle">2026年7月</h2>
+                <button id="nextMonthBtn" class="cal-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                <button id="todayCalBtn" class="cal-today-btn">今日</button>
+              </div>
+              
+              <div class="calendar-right-tools">
+                <div class="calendar-user-filter">
+                  <label><i class="fa-solid fa-user"></i> 対象社員:</label>
+                  <select id="calendarUserSelect"></select>
+                </div>
+                <!-- Requirement ⑧: 未来・定例予定の登録ボタン -->
+                <button id="btnAddScheduleBtn" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-calendar-plus"></i> 未来/定例予定を登録
+                </button>
+              </div>
+            </div>
+
+            <div class="calendar-grid-header">
+              <div class="sunday">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="saturday">土</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- MODAL: Update Status Modal for Selected Member -->
+    <div id="statusModal" class="modal">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <img id="modalMemberAvatar" class="avatar-md" src="" alt="Avatar">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <h3 id="modalMemberName">社員名</h3>
+                <!-- Requirement ②: 内線番号バッジ -->
+                <span id="modalMemberExt" class="ext-badge"><i class="fa-solid fa-phone"></i> 内線: ---</span>
+              </div>
+              <span id="modalMemberDept" class="badge-dept">部署名</span>
+            </div>
+          </div>
+          <button class="modal-close" id="closeStatusModal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- 9 Status Selection Buttons -->
+          <div class="form-group">
+            <label class="form-label font-bold">
+              <i class="fa-solid fa-signal"></i> ステータスを選択 (9項目):
+            </label>
+            <div class="status-buttons-grid" id="statusButtonsGrid">
+              <!-- Rendered via JS dynamically -->
+            </div>
+          </div>
+
+          <!-- Status Message Box (Unlimited text) -->
+          <div class="form-group">
+            <label class="form-label" for="statusMessageInput">
+              <i class="fa-solid fa-comment-dots"></i> ステータスメッセージ (文字数無制限):
+            </label>
+            <textarea id="statusMessageInput" class="form-control text-area-expand" rows="3" placeholder="予定、移動時間、連絡先、行き先などを入力..."></textarea>
+          </div>
+
+          <!-- Memo Checkbox & Conditional Yellow Message Box -->
+          <div class="form-group memo-section">
+            <label class="checkbox-label">
+              <input type="checkbox" id="memoCheckbox">
+              <span class="checkbox-custom"></span>
+              <span class="label-text-memo"><i class="fa-solid fa-note-sticky"></i> 「伝言」を残す</span>
+            </label>
+
+            <div id="memoContainer" class="memo-container hidden">
+              <h4 class="memo-title"><i class="fa-solid fa-thumbtack"></i> 伝言メッセージ</h4>
+              <textarea id="memoMessageInput" class="form-control memo-textarea" rows="3" placeholder="社員宛ての伝言、折り返し電話要求、メッセージを入力してください..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelStatusModal">キャンセル</button>
+          <button type="button" class="btn btn-primary" id="saveStatusBtn">
+            <i class="fa-solid fa-floppy-disk"></i> ステータスを更新
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Settings Modal (Requirement ④: 最終時刻 vs 経過時間 / Requirement ⑤: 端末ローカル設定) -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content modal-md">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-sliders"></i> システム表示 & ステータスカラー設定</h3>
+          <button class="modal-close" id="closeSettingsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+
+          <!-- 最終変更時刻 (ON) vs 経過時間 (OFF) -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">更新日時の表示形式</span>
+              <span class="setting-desc">
+                <strong>ON</strong>: 最終変更時刻を表示 (例: 14:35)<br>
+                <strong>OFF</strong>: 更新からの経過時間を表示 (例: 15分前)
+              </span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleShowExactTime" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- 端末ローカル設定の説明 -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">使用端末（ブラウザ）個別設定</span>
+              <span class="setting-desc">これらの設定はこの端末のブラウザローカルストレージにのみ保存されます</span>
+            </div>
+            <span class="badge-dept" style="background:#e0f2fe; color:#0369a1;">端末個別保存</span>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">自動処理監視モード</span>
+              <span class="setting-desc">10:15確認メールおよび0:00ステータス自動リセットの判定</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleAutoCron" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <hr class="divider">
+
+          <h4 class="section-subtitle"><i class="fa-solid fa-palette"></i> ステータスカラー設定</h4>
+          <p class="section-desc">ボタンおよび社員全体のテーマ背景に連動するカラーを設定します。</p>
+
+          <div class="color-settings-list" id="colorSettingsList">
+            <!-- Dynamic color pickers -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="resetColorsBtn">デフォルト色に戻す</button>
+          <button type="button" class="btn btn-primary" id="saveSettingsBtn">設定を保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Member Management Modal (Requirement ②: 内線番号対応) -->
+    <div id="memberModal" class="modal">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-users-gear"></i> メンバー登録・管理</h3>
+          <button class="modal-close" id="closeMemberModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="addMemberForm" class="member-form">
+            <input type="hidden" id="memberEditId" value="">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>氏名 *</label>
+                <input type="text" id="memberInputName" class="form-control" placeholder="山田 太郎" required>
+              </div>
+              <div class="form-group flex-1">
+                <label>部署名 *</label>
+                <input type="text" id="memberInputDept" class="form-control" placeholder="営業部" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <!-- Requirement ②: 内線番号入力 -->
+              <div class="form-group flex-1">
+                <label>内線番号</label>
+                <input type="text" id="memberInputExt" class="form-control" placeholder="例: 101, 8820">
+              </div>
+              <div class="form-group flex-1">
+                <label>役職</label>
+                <input type="text" id="memberInputRole" class="form-control" placeholder="課長 / エンジニア">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>メールアドレス *</label>
+                <input type="email" id="memberInputEmail" class="form-control" placeholder="yamada@example.com" required>
+              </div>
+              <div class="form-group flex-1">
+                <label>アバター画像URL (任意)</label>
+                <input type="text" id="memberInputAvatar" class="form-control" placeholder="https://..." value="">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success" id="saveMemberFormBtn">
+                <i class="fa-solid fa-plus"></i> メンバーを追加 / 更新
+              </button>
+              <button type="button" class="btn btn-secondary hidden" id="cancelMemberEditBtn">編集キャンセル</button>
+            </div>
+          </form>
+
+          <hr class="divider">
+
+          <!-- ③ 折り畳み可能な社員一覧 -->
+          <div class="collapsible-header">
+            <button type="button" id="toggleMemberListBtn" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-chevron-down"></i> 登録中の社員一覧を表示
+            </button>
+            <span style="font-size:0.85rem;color:var(--text-muted);">現在 <strong id="memberCountText">0</strong> 名登録済み</span>
+          </div>
+          <div id="memberListSection" class="member-list-section collapsed">
+            <div class="table-responsive max-h-300">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>社員</th>
+                    <th>内線</th>
+                    <th>部署</th>
+                    <th>役職</th>
+                    <th>メールアドレス</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="memberListTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: カレンダー未来予定 & 毎週繰り返し予定 登録モーダル -->
+    <div id="scheduleModal" class="modal">
+      <div class="modal-content modal-md">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-calendar-plus"></i> 未来の予定・定例予定の追加</h3>
+          <button class="modal-close" id="closeScheduleModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="scheduleForm">
+            <div class="form-group">
+              <label>対象社員 *</label>
+              <select id="scheduleMemberSelect" class="form-control" required></select>
+            </div>
+
+            <!-- ⑥ 複数人共有 -->
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="scheduleMultiCheck">
+                <span class="checkbox-custom"></span>
+                <span class="label-text-memo"><i class="fa-solid fa-users"></i> 複数名に同じ予定を共有する</span>
+              </label>
+              <div id="additionalMembersContainer" class="additional-members-box hidden">
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">チェックしたメンバーにも同じ予定が登録されます</p>
+                <div id="scheduleAdditionalMembers" class="multi-member-list"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>予定の種別 *</label>
+              <select id="scheduleTypeSelect" class="form-control" required>
+                <option value="once">特定日の単発予定</option>
+                <option value="weekly">毎週定例予定</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="singleDateGroup">
+              <label>予定日付 *</label>
+              <input type="date" id="scheduleDateInput" class="form-control">
+            </div>
+
+            <div class="form-group hidden" id="weeklyDayGroup">
+              <label>繰返す曜日 *</label>
+              <select id="scheduleDayOfWeekSelect" class="form-control">
+                <option value="1">毎週月曜日</option>
+                <option value="2">毎週火曜日</option>
+                <option value="3">毎週水曜日</option>
+                <option value="4">毎週木曜日</option>
+                <option value="5">毎週金曜日</option>
+                <option value="6">毎週土曜日</option>
+                <option value="0">毎週日曜日</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>予定時のステータス *</label>
+              <select id="scheduleStatusSelect" class="form-control" required></select>
+            </div>
+
+            <div class="form-group">
+              <label>予定タイトル / 詳細メッセージ *</label>
+              <input type="text" id="scheduleTitleInput" class="form-control" placeholder="例: B社 現地調査 / 定例会議" required>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelScheduleModal">閉じる</button>
+          <button type="button" class="btn btn-primary" id="saveScheduleBtn">
+            <i class="fa-solid fa-plus"></i> 予定を追加保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Logs & CSV Export Modal -->
+    <div id="logsModal" class="modal">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-clock-rotate-left"></i> 行動ログ & Excel (CSV) アプリ出力</h3>
+          <button class="modal-close" id="closeLogsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="log-actions-bar">
+            <div class="log-search-group">
+              <input type="text" id="logSearchInput" class="form-control" placeholder="ログ内を検索...">
+            </div>
+            <div class="log-export-group">
+              <button id="exportCsvBtn" class="btn btn-excel">
+                <i class="fa-solid fa-file-excel"></i> CSV (Excel) ダウンロード
+              </button>
+              <button id="clearLogsBtn" class="btn btn-danger-outline">
+                <i class="fa-solid fa-trash-can"></i> ログ消去
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive max-h-400">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>種別</th>
+                  <th>対象社員</th>
+                  <th>部署</th>
+                  <th>変更前ステータス</th>
+                  <th>変更後ステータス</th>
+                  <th>メッセージ / 伝言</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Auto-Simulation Test Modal -->
+    <div id="autoSimModal" class="modal">
+      <div class="modal-content modal-md">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-robot"></i> 自動処理シミュレーター</h3>
+          <button class="modal-close" id="closeAutoSimModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="sim-card">
+            <div class="sim-header">
+              <i class="fa-solid fa-envelope-open-text sim-icon amber"></i>
+              <div>
+                <h4>午前10:15 「退勤」確認メール送信</h4>
+                <p>10:15時点でステータスが「退勤」のままの社員へ状況確認メールを模擬送信します。</p>
+              </div>
+            </div>
+            <button id="runSim1015" class="btn btn-warning full-width">
+              <i class="fa-solid fa-paper-plane"></i> 10:15 チェックシミュレーション実行
+            </button>
+          </div>
+
+          <div class="sim-card">
+            <div class="sim-header">
+              <i class="fa-solid fa-moon sim-icon purple"></i>
+              <div>
+                <h4>午前0:00 ステータス自動「退勤」変更</h4>
+                <p>「退勤」「直行」「直行・直帰」「休み」以外のステータス社員を自動的に「退勤」へリセットします。</p>
+              </div>
+            </div>
+            <button id="runSim0000" class="btn btn-purple full-width">
+              <i class="fa-solid fa-rotate-left"></i> 0:00 リセットシミュレーション実行
+            </button>
+          </div>
+
+          <hr class="divider">
+
+          <h4>シミュレーション結果 / 送信履歴</h4>
+          <div class="sim-log-box" id="simLogBox">
+            <p class="empty-log">シミュレーションを実行すると結果がここに表示されます。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

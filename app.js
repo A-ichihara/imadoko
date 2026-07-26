@@ -1155,7 +1155,21 @@ class ImaDokoApp {
     document.getElementById('cancelMemberEditBtn').classList.remove('hidden');
   }
 
-
+  deleteMember(id) {
+    const m = this.members.find(x => x.id === id);
+    if (!m) return;
+    if (!confirm(`「${m.name}」を削除しますか？\n\nこの操作は取り消せません。`)) return;
+    this.members = this.members.filter(x => x.id !== id);
+    this.saveStorage('imadoko_members', this.members);
+    this.renderMemberListTable();
+    this.renderDeptFilterOptions();
+    this.renderStatsBar();
+    this.renderCurrentView();
+    this.renderCalendarUserOptions();
+    // Supabaseからも削除（非同期・失敗しても画面に影響しない）
+    this.deleteMemberFromSupabase(id);
+    this.showNoticeBanner(`「${m.name}」を削除しました。`);
+  }
 
   resetMemberForm() {
     document.getElementById('addMemberForm').reset();

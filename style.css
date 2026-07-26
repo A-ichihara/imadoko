@@ -1366,6 +1366,14 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* スマートフォン・小型タブレット (〜768px) */
 @media (max-width: 768px) {
+  /* スマホでの全画面スクロールの完全開放 (縦スクロールを有効化) */
+  html, body, .app-container, .main-content, .views-container, .view-pane {
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* ヘッダー全体 */
   .app-header {
     padding: 0.6rem 0.75rem;
@@ -1662,33 +1670,56 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 
 /* =====================================================================
-   カレンダー「月 / 週」切り替えサブタブ & 週表示スタイル
+   カレンダー「月 / 週」切り替えサブタブ & 横スクロール & 週表示スタイル
    ===================================================================== */
 .cal-subview-group {
   display: inline-flex;
   background: var(--background-main);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 2px;
+  padding: 3px;
   margin-left: 0.5rem;
+  gap: 3px;
 }
 
+/* タップ領域を大きく・押しやすいボタンに */
 .cal-subview-btn {
   border: none;
   background: transparent;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.78rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-muted);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .cal-subview-btn.active {
   background: var(--primary-color);
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.25);
+}
+
+/* 月表示用横スクロールコンテナ */
+.cal-month-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  /* スマホ表示でのカレンダー月グリッドを横スクロール可能に */
+  .cal-month-wrap .calendar-grid-header,
+  .cal-month-wrap .calendar-grid {
+    min-width: 620px;
+  }
 }
 
 /* 週表示 (Week View) レイアウト */

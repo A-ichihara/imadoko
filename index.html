@@ -119,15 +119,19 @@
           <div class="calendar-layout">
             <div class="calendar-header">
               <div class="calendar-controls">
-                <button id="prevMonthBtn" class="cal-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="prevMonthBtn" class="cal-nav-btn" title="前月/前週"><i class="fa-solid fa-chevron-left"></i></button>
                 <h2 id="calendarTitle">2026年7月</h2>
-                <button id="nextMonthBtn" class="cal-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                <button id="nextMonthBtn" class="cal-nav-btn" title="翌月/翌週"><i class="fa-solid fa-chevron-right"></i></button>
                 <button id="todayCalBtn" class="cal-today-btn">今日</button>
 
-                <!-- 月 / 週 切替スイッチ -->
+                <!-- 月 / 週 切替スイッチ (大型タップ対応) -->
                 <div class="cal-subview-group">
-                  <button id="calSubViewMonth" class="cal-subview-btn active">月</button>
-                  <button id="calSubViewWeek" class="cal-subview-btn">週</button>
+                  <button id="calSubViewMonth" class="cal-subview-btn active">
+                    <i class="fa-solid fa-calendar-days"></i> 月
+                  </button>
+                  <button id="calSubViewWeek" class="cal-subview-btn">
+                    <i class="fa-solid fa-calendar-week"></i> 週
+                  </button>
                 </div>
               </div>
               
@@ -143,10 +147,21 @@
               </div>
             </div>
 
-            <div class="calendar-grid-header">
-              <div class="sunday">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="saturday">土</div>
+            <!-- 月表示用コンテナ (横スクロール対応) -->
+            <div id="calMonthViewWrap" class="cal-month-wrap">
+              <div class="calendar-grid-header">
+                <div class="sunday">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="saturday">土</div>
+              </div>
+              <div class="calendar-grid" id="calendarGrid"></div>
             </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
+
+            <!-- 週表示用コンテナ -->
+            <div id="calWeekViewWrap" class="cal-week-wrap hidden">
+              <div class="calendar-week-container" id="calendarWeekContainer"></div>
+            </div>
+
+            <!-- Googleカレンダー風 選択日の予定アジェンダ表示エリア -->
+            <div class="calendar-agenda-container" id="calendarAgendaContainer"></div>
           </div>
         </div>
 
